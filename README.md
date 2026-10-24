@@ -4,6 +4,10 @@ A phone web app for English shadow reading. Paste text, or open an .epub, .md, o
 
 The home page is a library: a Continue card for the last text, a history list with progress per text, and an Import button. Every text remembers its own place.
 
+## Hosted
+
+Live at https://shadow-reading-henna.vercel.app, built by Vercel from the main branch on every push. On the iPhone: open it in Safari, Share, Add to Home Screen.
+
 ## Run it
 
 ```bash
