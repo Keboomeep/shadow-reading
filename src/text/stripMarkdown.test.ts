@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { stripMarkdown } from './stripMarkdown'
+import { chaptersFromMarkdown, stripMarkdown } from './stripMarkdown'
 
 describe('stripMarkdown', () => {
   it('headings become their own paragraph', () => {
@@ -33,5 +33,19 @@ describe('stripMarkdown', () => {
   })
   it('plain text passes through', () => {
     expect(stripMarkdown('Just text.\n\nTwo paragraphs.')).toBe('Just text.\n\nTwo paragraphs.')
+  })
+})
+
+describe('chaptersFromMarkdown', () => {
+  it('lists headings with their paragraph number', () => {
+    const md = '# Book\n\nIntro text.\n\n## Chapter 1\n\nFirst.\nStill first.\n\n## Chapter 2\n\nSecond.'
+    expect(chaptersFromMarkdown(md)).toEqual([
+      { title: 'Book', paragraph: 0 },
+      { title: 'Chapter 1', paragraph: 2 },
+      { title: 'Chapter 2', paragraph: 4 },
+    ])
+  })
+  it('plain text has no chapters', () => {
+    expect(chaptersFromMarkdown('Just text.\n\nMore.')).toEqual([])
   })
 })

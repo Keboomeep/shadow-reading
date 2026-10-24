@@ -1,0 +1,5 @@
+project_id = "guhqlwljyxvmhtrmgbji"
+
+[functions.tts]
+# The app calls this with the public anon key. Keep JWT checking on so random callers are refused.
+verify_jwt = true

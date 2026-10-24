@@ -5,7 +5,22 @@
  * each become their own paragraph. Code blocks, images, tables separators,
  * HTML tags, and front matter are removed. Link text is kept, the URL is not.
  */
+export type Paragraph = { text: string; heading: boolean }
+
+/** Plain text, paragraphs separated by one blank line. */
 export function stripMarkdown(md: string): string {
+  return markdownToParagraphs(md).map((p) => p.text).join('\n\n')
+}
+
+/** Chapter titles (markdown headings) with the paragraph number they start at. */
+export function chaptersFromMarkdown(md: string): { title: string; paragraph: number }[] {
+  return markdownToParagraphs(md)
+    .map((p, paragraph) => ({ ...p, paragraph }))
+    .filter((p) => p.heading)
+    .map((p) => ({ title: p.text, paragraph: p.paragraph }))
+}
+
+export function markdownToParagraphs(md: string): Paragraph[] {
   let text = md.replace(/\r\n?/g, '\n')
 
   // Front matter at the very top: --- ... ---
@@ -31,20 +46,23 @@ export function stripMarkdown(md: string): string {
   text = text.replace(/\[\^[^\]]+\]/g, '')
 
   const lines = text.split('\n')
-  const out: string[] = []
+  // Empty text marks a paragraph break.
+  const out: Paragraph[] = []
+  const brk = () => out.push({ text: '', heading: false })
 
   for (const raw of lines) {
     let line = raw.trim()
 
     // Horizontal rules and table separator rows
-    if (/^([-*_]\s*){3,}$/.test(line)) { out.push(''); continue }
+    if (/^([-*_]\s*){3,}$/.test(line)) { brk(); continue }
     if (/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(line)) { continue }
 
     let standalone = false
+    let isHeading = false
 
     // Headings: # Title or Title followed by === is handled as plain text
     const heading = line.match(/^#{1,6}\s+(.*?)\s*#*$/)
-    if (heading) { line = heading[1]; standalone = true }
+    if (heading) { line = heading[1]; standalone = true; isHeading = true }
 
     // Blockquote marks
     line = line.replace(/^(>\s?)+/, '')
@@ -72,28 +90,29 @@ export function stripMarkdown(md: string): string {
       .trim()
 
     if (standalone) {
-      // Own paragraph: blank line before and after
-      if (out.length && out[out.length - 1] !== '') out.push('')
-      out.push(line, '')
+      // Own paragraph: break before and after
+      if (out.length && out[out.length - 1].text !== '') brk()
+      out.push({ text: line, heading: isHeading })
+      brk()
     } else {
-      out.push(line)
+      out.push({ text: line, heading: false })
     }
   }
 
-  // Lines inside a paragraph join with a space; blank lines separate paragraphs.
-  const paragraphs: string[] = []
+  // Lines inside a paragraph join with a space; breaks separate paragraphs.
+  const paragraphs: Paragraph[] = []
   let current: string[] = []
-  for (const line of out) {
-    if (line === '') {
-      if (current.length) { paragraphs.push(current.join(' ')); current = [] }
-    } else {
-      current.push(line)
-    }
+  let currentHeading = false
+  const flush = () => {
+    const text = current.join(' ').replace(/\s+/g, ' ').trim()
+    if (text) paragraphs.push({ text, heading: currentHeading })
+    current = []
+    currentHeading = false
   }
-  if (current.length) paragraphs.push(current.join(' '))
-
+  for (const line of out) {
+    if (line.text === '') flush()
+    else { current.push(line.text); currentHeading = currentHeading || line.heading }
+  }
+  flush()
   return paragraphs
-    .map((p) => p.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .join('\n\n')
 }
